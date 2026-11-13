@@ -1,0 +1,37 @@
+name: Testes
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  merge_group:
+
+permissions:
+  contents: read
+
+jobs:
+  unit-tests:
+    name: Testes (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Executar testes
+        run: python -m unittest discover -s tests -v
+
+  tests-required:
+    name: testes-obrigatorios
+    if: always()
+    needs: unit-tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Exigir aprovação em todas as plataformas
+        env:
+          RESULT: ${{ needs.unit-tests.result }}
+        run: test "$RESULT" = success

@@ -1,0 +1,12 @@
+#!/usr/bin/env sh
+# Testa exatamente os arquivos preparados para o commit.
+set -eu
+snapshot=$(mktemp -d "${TMPDIR:-/tmp}/transcript-tests.XXXXXX")
+trap 'rm -rf "$snapshot"' EXIT HUP INT TERM
+git checkout-index --all --prefix="$snapshot/"
+cd "$snapshot"
+if command -v python3 >/dev/null 2>&1; then
+    python3 -m unittest discover -s tests -v
+else
+    python -m unittest discover -s tests -v
+fi
