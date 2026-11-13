@@ -27,7 +27,7 @@ class ScriptTests(unittest.TestCase):
             "        return iter([SimpleNamespace(text=language, start=0, end=1)]), None\n", encoding='utf-8')
         self.env = dict(os.environ, PYTHONPATH=str(self.directory))
 
-    @unittest.skipUnless(shutil.which('bash'), 'bash não disponível')
+    @unittest.skipUnless(os.name != 'nt' and shutil.which('bash'), 'bash Unix não disponível')
     def test_shell_forwards_arguments(self):
         base = self.directory / 'shell output' / 'transcricao'
         result = subprocess.run(['bash', str(ROOT / 'transcript.sh'), '--python', sys.executable,
