@@ -1,48 +1,74 @@
-# POC — Transcrição de Áudio Local
+# Transcrição local de áudio e vídeo
 
-CLI para transcrever áudio e vídeo localmente em um Mac com Apple Silicon, usando mlx-whisper.
+Ferramenta de linha de comando para transcrever arquivos de áudio e vídeo localmente. Gera uma transcrição em texto (`.txt`) e legendas com marcações de tempo (`.srt`).
 
-## Requisitos e instalação
+O projeto usa modelos Whisper por meio de `mlx-whisper` ou `faster-whisper`. A transcrição é executada no computador; a instalação das dependências e o primeiro uso de um modelo baixado exigem conexão com a internet.
 
-- Python 3.11 ou superior
-- ffmpeg
-- Ambiente virtual Python com as dependências do projeto
+## Plataformas e requisitos
+
+Todas as plataformas precisam de **Python 3.11 ou superior**, `pip` e espaço em disco para as dependências, os modelos e os arquivos de saída. A memória e o tempo de processamento variam conforme o modelo e o tamanho da entrada; este projeto não definiu um mínimo de RAM ou disco por meio de testes.
+
+| Plataforma | Requisitos para a configuração descrita abaixo | Motor |
+| --- | --- | --- |
+| macOS | macOS 14 ou superior, processador Apple Silicon, Python nativo para ARM e ffmpeg. | `mlx-whisper` |
+| Linux | Processador x86-64 com SSE 4.1 ou ARM64, Python e Bash. | `faster-whisper` em CPU, com precisão int8 |
+| Windows | Sistema e processador x86-64 com SSE 4.1, Python e PowerShell. Pode ser necessário instalar o runtime Microsoft Visual C++. | `faster-whisper` em CPU, com precisão int8 |
+
+Os requisitos de sistema dependem também das versões e dos pacotes disponíveis para cada plataforma. Consulte a documentação do [MLX](https://github.com/ml-explore/mlx/blob/main/docs/src/install.rst), do [faster-whisper](https://github.com/SYSTRAN/faster-whisper) e do [CTranslate2](https://github.com/OpenNMT/CTranslate2/blob/master/docs/installation.md).
+
+## Instalação e uso
+
+Execute os comandos na pasta do projeto e substitua o caminho de entrada pelo arquivo desejado.
+
+### macOS
 
 ```bash
 brew install ffmpeg
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
-```
-
-## Uso
-
-```bash
 ./transcript.sh ~/Downloads/entrada.m4a
 ```
 
-Por padrão, o comando cria `output/entrada.txt` e `output/entrada.srt` na pasta do projeto. Consulte [transcript_doc.md](transcript_doc.md) para todas as opções e exemplos.
+### Linux
 
-## Windows
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements-windows.txt
+./transcript.sh --backend faster-whisper ~/Downloads/entrada.m4a
+```
 
-No Windows, use `transcript.ps1` com faster-whisper. A instalação e os exemplos estão em [transcript_doc_ps.md](transcript_doc_ps.md).
+O arquivo `requirements-windows.txt` também fornece as dependências do motor usado no Linux. Em algumas distribuições, é necessário instalar o pacote do sistema que fornece `venv` para o Python.
 
-## Testes e proteção da main
+### Windows
 
-Execute a suíte com Python 3.11 ou superior, sem instalar os modelos de transcrição:
+No PowerShell:
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements-windows.txt
+.\transcript.ps1 "$HOME\Downloads\entrada.m4a"
+```
+
+O `faster-whisper` decodifica mídia por meio do PyAV e não exige uma instalação separada do executável ffmpeg.
+
+## Saída e opções
+
+Por padrão, os arquivos são criados em `output/` na pasta do projeto, com o nome da entrada. Por exemplo, `entrada.m4a` gera `output/entrada.txt` e `output/entrada.srt`. O idioma padrão é português. Arquivos de saída com o mesmo nome são sobrescritos.
+
+É possível definir a pasta ou o nome de saída, o idioma e o modelo. Consulte [transcript_doc.md](transcript_doc.md) para o script Bash e [transcript_doc_ps.md](transcript_doc_ps.md) para PowerShell. No Linux, acrescente `--backend faster-whisper` aos exemplos Bash e escolha um modelo compatível com esse motor.
+
+## Testes
 
 ```bash
 python -m unittest discover -s tests -v
 ```
 
-No macOS, se necessário, use `python3` no lugar de `python`. Os testes simulam os motores de transcrição e verificam os scripts disponíveis, sem baixar modelos ou arquivos de mídia.
-
-Após inicializar ou clonar o repositório Git, instale o hook local uma vez por clone:
+Use `python3` caso `python` não esteja disponível. Os testes simulam os motores e não precisam baixar modelos. Para executá-los antes dos commits, configure o hook uma vez por clone:
 
 ```bash
 git config --local core.hooksPath .githooks
 ```
 
-O hook executa os testes sobre os arquivos preparados com `git add` e bloqueia o commit se eles falharem. Instalar o hook substitui qualquer outro `core.hooksPath` configurado localmente. Hooks locais podem ser desativados ou ignorados, portanto não garantem a proteção da branch no servidor.
-
-O workflow `.github/workflows/tests.yml` executa a suíte em Linux, macOS e Windows. Para proteger a `main` no GitHub, publique o workflow e, em **Settings → Branches**, crie uma regra para `main`: exija pull requests e o status **testes-obrigatorios**; impeça que administradores e outras funções ignorem as regras e restrinja permissões de bypass. O status precisa ter sido executado pelo menos uma vez para aparecer na seleção. Essa configuração exige permissões de administração e disponibilidade de regras de proteção no plano do repositório. Com ela, alterações só entram na `main` do GitHub após a verificação exigida; commits locais ainda podem ser feitos ou seus hooks ignorados.
+O hook verifica os arquivos preparados para o commit e pode ser ignorado localmente. No GitHub, a proteção da `main` exige a aprovação dos testes antes da incorporação de alterações.
